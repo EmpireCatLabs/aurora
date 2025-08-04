@@ -1,11 +1,40 @@
-name: Anaconda Stable ISO
+name: Stable Images
+
 on:
-  workflow_dispatch:
+  merge_group: {}  # ✅ Boş obje tanımı gerekli!
+  pull_request:
+    branches:
+      - main
+      - testing
+    paths-ignore:
+      - "**.md"
+      - "iso_files/**"
+      - "aurora_flatpaks/**"
+      - "dx_flatpaks/**"
+      - ".github/workflows/*iso*"
+  schedule:
+    - cron: "50 5 * * 0" # 5:50 UTC Sunday
+  workflow_call: {}  # ✅ Bu da boş obje olmalı
+  workflow_dispatch: {}
 
 jobs:
-  build-iso-stable:
-    name: Build Stable ISOs
-    uses: ./.github/workflows/reusable-build-iso.yml
+  build-image-stable:
+    name: Build Stable Images
+    uses: ./.github/workflows/reusable-build.yml
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        brand_name: ["aurora"]
+    with:
+      kernel_pin: 6.14.11-300.fc42.x86_64  # ✅ Doğru format
+      brand_name: ${{ matrix.brand_name }}
+      stream_name: stable
+
+  generate-release:
+    name: Generate Release
+    needs: [build-image-stable]
+    uses: ./.github/workflows/generate-release.yml
     secrets: inherit
     with:
-      stream_name: stable
+      stream_name: '["stable", "stable-daily"]'
